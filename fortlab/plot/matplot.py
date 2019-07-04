@@ -22,8 +22,9 @@ Examples
 
         self.add_option_argument('-f', metavar='figure creation', help='(E,P) define a figure for plotting.')
         self.add_option_argument('-t', '--title', metavar='title', action='append', help='title  plotting.')
+        self.add_option_argument('-c', '--calc', metavar='calc', action='append', help='create a new variable.')
         self.add_option_argument('-p', '--plot', metavar='plot type', action='append', param_parse=True, help='(E,P) plot type for plotting.')
-        self.add_option_argument('-s', '--save', metavar='save', action='append', help='file path to save png image.')
+        self.add_option_argument('-s', '--save', metavar='save', param_parse=True, help='file path to save png image.')
         self.add_option_argument('-x', '--xaxis', metavar='xaxis', action='append', help='axes function wrapper for x axis settings.')
         self.add_option_argument('-y', '--yaxis', metavar='yaxis', action='append', help='axes function wrapper for y axis settings.')
         self.add_option_argument('-z', '--zaxis', metavar='zaxis', action='append', help='axes function wrapper for z axis settings.')
@@ -39,21 +40,23 @@ Examples
         self.add_option_argument('--noplot', action='store_true', default=False, help='prevent generating plot.')
 
         #self.register_forward("data", help="Netcdf data in Python dictionary")
-        self.env = dict(self._env)
-        self.env["matplotlib"] = mpl
-        self.env["pyplot"] = plt
+        self._env["np"] = np
+        self._env["mpl"] = mpl
+        self._env["plt"] = plt
+
+        self.figure = None
+        self.axes = {}
+        self.axes3d = None
+        self.plots = []
 
     def perform(self, targs):
 
-        subplots = {}
-        axes = {}
-
         # figure setting
         if targs.f:
-            self.env['figure'] = eval('pyplot.figure(%s)'%targs.f, self.env)
+            self.figure = eval('plt.figure(%s)'%targs.f, self._env)
 
         else:
-            self.env['figure'] = eval('pyplot.figure()', self.env)
+            self.figure = plt.figure()
 
         # plot axis
         if targs.subplot:
@@ -65,11 +68,11 @@ Examples
 
                     if 'projection' in subplot_arg.kwargs and subplot_arg.kwargs['projection'] == '3d':
                          from mpl_toolkits.mplot3d import Axes3D
-                         self.env['Axes3D'] = Axes3D
+                         self.axes3d = Axes3D
                     if subplot_arg.vargs:
-                        subplots[subpname] = self.env['figure'].add_subplot(*subplot_arg.vargs, **subplot_arg.kwargs)
+                        self.axes[subpname] = self.figure.add_subplot(*subplot_arg.vargs, **subplot_arg.kwargs)
                     else:
-                        subplots[subpname] = self.env['figure'].add_subplot(111, **subplot_arg.kwargs)
+                        self.axes[subpname] = self.figure.add_subplot(111, **subplot_arg.kwargs)
                 else:
                     UsageError("The synaxt error near '@': %s"%str(subplot_arg))
 
@@ -100,44 +103,41 @@ Examples
                 raise UsageError("pandas option has wrong syntax on using '@': %s"%targs.pandas)
 
         elif not targs.subplot:
-            self.env['ax'] = self.env['figure'].add_subplot(111)
+            self.axes["ax"] = self.figure.add_subplot(111)
 
         # plotting
         plots = []
         if targs.plot:
             for plot_arg in targs.plot:
 
-                import pdb; pdb.set_trace()
-                if len(plot_arg.context) == 1:
-                    axes = [self.env["ax"]]
-                    funcname = items[0][0][0]
-                elif len(plot_arg.context) == 2:
-                    axes = items[0][0]
-                    funcname = items[1][0][0]
+                vargs = []
+                for i in range(len(plot_arg.vargs)):
+                    vargs.append(eval(plot_arg.vargs[i], self._env))
+
+                kwargs = {}
+                for k in plot_arg.kwargs:
+                    kwargs[k] = eval(plot_arg.kwargs[k], self._env)
+
+                nctx = len(plot_arg.context)
+
+                funcname = plot_arg.context[0] if nctx > 0 else "plot"
+                axname = plot_arg.context[1] if nctx > 1 else "ax"
+                ax = self.axes[axname]
+
+                if hasattr(ax, funcname):
+                    plot_handle = getattr(ax, funcname)(*vargs, **kwargs)
+
+                    try:
+                        for p in plot_handle:
+                            self.plots.append(p)
+                    except TypeError:
+                        self.plots.append(plot_handle)
                 else:
-                    UsageError("Following option needs one or two items at the left of @: %s"%plot_arg)
-
-                for ax in axes:
-                    if hasattr(ax, funcname):
-                        plot_handle = getattr(ax, funcname)(*vargs, **kwargs)
-
-                        try:
-                            for p in plot_handle:
-                                plots.append(p)
-                        except TypeError:
-                            plots.append(plot_handle)
-                    else:
-                        # TODO: handling this case
-                        pass
+                    # TODO: handling this case
+                    pass
 
                 if funcname == 'pie':
-                    for ax in axes:
-                        self.env[ax].axis('equal')
-
-        if 'plots' in self.env:
-            self.env['plots'].extend(plots)
-        else:
-            self.env['plots'] = plots
+                    ax.axis('equal')
 
         # title setting
         if targs.title:
@@ -301,7 +301,7 @@ Examples
                 for ax in axes:
                     getattr(ax, funcname)(*vargs, **kwargs)
 
-        elif not self.env['plots']:
+        elif not self.plots:
             if targs.figure:
                 pass
             elif targs.data:
@@ -319,30 +319,20 @@ Examples
 
         # saving an image file
         if targs.save:
-            for save_arg in targs.save:
-                s = save_arg.split("$")
-                # savefig(fname, dpi=None, facecolor='w', edgecolor='w',
-                # orientation='portrait', papertype=None, format=None,
-                # transparent=False, bbox_inches=None, pad_inches=0.1,
-                # frameon=None)
-                # syntax: funcargs
-                # text, varmap, self.env, evals
-                items, vargs, kwargs = parse_optionvalue('r'+s[0], s[1:], self.env)
-
-                name = vargs.pop(0)
-
-                if self.env['num_pages'] > 1:
-                    root, ext = os.path.splitext(name)
-                    name = '%s-%d%s'%(root, self.env['page_num'], ext)
-
-                self.env["figure"].savefig(name, *vargs, **kwargs)
+            # savefig(fname, dpi=None, facecolor='w', edgecolor='w',
+            # orientation='portrait', papertype=None, format=None,
+            # transparent=False, bbox_inches=None, pad_inches=0.1,
+            # frameon=None)
+            name = targs.save.vargs.pop(0)
+            vargs = targs.save.vargs
+            kwargs = targs.save.kwargs
+            self.figure.savefig(name, *vargs, **kwargs)
 
         # displyaing an image on screen
         if not targs.noshow:
-            self.env['pyplot'].show()
+            self._env['plt'].show()
 
-        self.env["figure"].clear()
-        self.env["pyplot"].close(self.env["figure"])
-        del self.env['figure']
+        self.figure.clear()
+        self._env["plt"].close(self.figure)
 
         #self.add_forward(data=data)
