@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import pyloco
-import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
+import numpy
+import matplotlib
+import matplotlib.pyplot as pyplot
 
 
 class MatPlot(pyloco.Task):
-    """Plotting task based on matplotlib
+    """matplotlib-based plotting task
 
 
 Examples
@@ -18,105 +18,143 @@ Examples
 
     def __init__(self, parent):
 
-        self.add_data_argument("data", required=False, nargs="*", help="data input")
+        self.add_data_argument("data", required=False, nargs="*",
+                evaluate=True, help="(E) data input")
 
-        self.add_option_argument('-f', metavar='figure creation', help='(E,P) define a figure for plotting.')
-        self.add_option_argument('-t', '--title', metavar='title', action='append', help='title  plotting.')
-        self.add_option_argument('-c', '--calc', metavar='calc', action='append', help='create a new variable.')
-        self.add_option_argument('-p', '--plot', metavar='plot type', action='append', param_parse=True, help='(E,P) plot type for plotting.')
-        self.add_option_argument('-s', '--save', metavar='save', param_parse=True, help='file path to save png image.')
-        self.add_option_argument('-x', '--xaxis', metavar='xaxis', action='append', help='axes function wrapper for x axis settings.')
-        self.add_option_argument('-y', '--yaxis', metavar='yaxis', action='append', help='axes function wrapper for y axis settings.')
-        self.add_option_argument('-z', '--zaxis', metavar='zaxis', action='append', help='axes function wrapper for z axis settings.')
-        self.add_option_argument('-g', action='store_true', help='grid for ax plotting.')
-        self.add_option_argument('-l', action='store_true', help='legend for ax plotting')
-        self.add_option_argument('--pandas', metavar='pandas', action='append', help='pandas plots.')
-        self.add_option_argument('--legend', metavar='legend', action='append', help='plot legend')
-        self.add_option_argument('--grid', metavar='grid', action='append', help='grid for plotting.')
-        self.add_option_argument('--subplot', metavar='subplot', action='append', param_parse=True, help='(E,P) define subplot.')
-        self.add_option_argument('--figure', metavar='figure function', action='append', help='define Figure function.')
-        self.add_option_argument('--axes', metavar='axes', action='append', help='define Axes function.')
-        self.add_option_argument('--noshow', action='store_true', default=False, help='prevent showing plot on screen.')
-        self.add_option_argument('--noplot', action='store_true', default=False, help='prevent generating plot.')
+        self.add_option_argument('-f', metavar='figure creation',
+                param_parse=True,
+                help='(E,P) define a figure for plotting.')
+        self.add_option_argument('-t', '--title', metavar='title',
+                param_parse=True,
+                help='(E,P) plot title')
+        self.add_option_argument('-c', '--eval', metavar='eval',
+                action='append', param_parse=True,
+                help='(E,P) evaluate an Python expression')
+        self.add_option_argument('-p', '--plot', metavar='plot type',
+                action='append', param_parse=True,
+                help='(E,P) plot type for plotting.')
+        self.add_option_argument('-s', '--save', metavar='save',
+                param_parse=True, help='(E,P) file path to save png image.')
+        self.add_option_argument('-x', '--xaxis', metavar='xaxis',
+                action='append', param_parse=True,
+                help='(E,P) axes function wrapper for x axis settings.')
+        self.add_option_argument('-y', '--yaxis', metavar='yaxis',
+                action='append', param_parse=True,
+                help='(E,P) axes function wrapper for y axis settings.')
+        self.add_option_argument('-z', '--zaxis', metavar='zaxis',
+                action='append', param_parse=True,
+                help='(E,P) axes function wrapper for z axis settings.')
+        self.add_option_argument('-g', action='store_true',
+                help='grid for ax plotting.')
+        self.add_option_argument('-l', action='store_true',
+                help='legend for ax plotting')
+        self.add_option_argument('--pandas', metavar='pandas',
+                action='append', param_parse=True,
+                help='(E,P) pandas plots.')
+        self.add_option_argument('--legend', metavar='legend',
+                action='append', param_parse=True,
+                help='(E,P) plot legend')
+        self.add_option_argument('--grid', metavar='grid',
+                action='append', param_parse=True,
+                help='(E,P) grid for plotting.')
+        self.add_option_argument('--subplot', metavar='subplot',
+                action='append', param_parse=True,
+                help='(E,P) define subplot.')
+        self.add_option_argument('--figure', metavar='figure function',
+                action='append', param_parse=True,
+                help='(E,P) define Figure function.')
+        self.add_option_argument('--axes', metavar='axes',
+                action='append', param_parse=True,
+                help='(E,P) define Axes function.')
+        self.add_option_argument('--noshow', action='store_true',
+                param_parse=True,
+                help='prevent showing plot on screen.')
+        self.add_option_argument('--noplot', action='store_true',
+                param_parse=True,
+                help='prevent generating plot.')
 
         #self.register_forward("data", help="Netcdf data in Python dictionary")
-        self._env["np"] = np
-        self._env["mpl"] = mpl
-        self._env["plt"] = plt
+        self._env["np"] = numpy
+        self._env["mpl"] = matplotlib
+        self._env["plt"] = pyplot
 
         self.figure = None
         self.axes = {}
         self.axes3d = None
         self.plots = []
 
+    def _eval(self, opt):
+
+        for i in range(len(opt.vargs)):
+            opt.vargs[i] = eval(opt.vargs[i], self._env) 
+
+        for k, v in opt.kwargs.items():
+            opt.kwargs[k] = eval(v, self._env) 
+
     def perform(self, targs):
+
+        if targs.eval:
+            for eval_arg in targs.eval:
+                self._eval(eval_arg)
+
+                for lhs, rhs in eval_arg.kwargs.items():
+                    self._env[lhs] = rhs
 
         # figure setting
         if targs.f:
-            self.figure = eval('plt.figure(%s)'%targs.f, self._env)
+            self._eval(targs.f)
+            vargs = targs.f.vargs
+            kwargs = targs.f.kwargs
+            self.figure = pyplot.figure(*vargs, **kwargs)
 
         else:
-            self.figure = plt.figure()
+            self.figure = pyplot.figure()
 
         # plot axis
         if targs.subplot:
             for subplot_arg in targs.subplot:
-                # split by $; apply variable mapping repeatedly
+                self._eval(subplot_arg)
 
                 if len(subplot_arg.context) == 1:
                     subpname = subplot_arg.context[0]
+                    vargs = subplot_arg.vargs
+                    kwargs = subplot_arg.kwargs
 
-                    if 'projection' in subplot_arg.kwargs and subplot_arg.kwargs['projection'] == '3d':
+                    if 'projection' in kwargs and kwargs['projection'] == '3d':
                          from mpl_toolkits.mplot3d import Axes3D
                          self.axes3d = Axes3D
-                    if subplot_arg.vargs:
-                        self.axes[subpname] = self.figure.add_subplot(*subplot_arg.vargs, **subplot_arg.kwargs)
+                    if vargs:
+                        self.axes[subpname] = self.figure.add_subplot(*vargs, **kwargs)
                     else:
-                        self.axes[subpname] = self.figure.add_subplot(111, **subplot_arg.kwargs)
+                        self.axes[subpname] = self.figure.add_subplot(111, **kwargs)
                 else:
                     UsageError("The synaxt error near '@': %s"%str(subplot_arg))
+
+        if not self.axes:
+            self.axes["ax"] = self.figure.add_subplot(111)
 
         # execute figure functions
         if targs.figure:
             for fig_arg in targs.figure:
-                s = fig_arg.split("$")
+                self._eval(fig_arg)
+                vargs = fig_arg.vargs
+                kwargs = fig_arg.kwargs
 
-                # syntax: funcname@funcargs
-                # text, varmap, self.env, evals
-                items, vargs, kwargs = parse_optionvalue(s[0], s[1:], self.env)
+                if len(fig_arg.context) == 1:
+                    funcname = fig_arg.context[0]
 
-                if len(items) == 1:
-                    funcname = items[0][0][0]
                 else:
-                    UsageError("The synaxt error near '@': %s"%fig_arg)
+                    UsageError("The synaxt error near '@': %s" % str(fig_arg))
 
-                getattr(self.env['figure'], funcname)(*vargs, **kwargs)
-
-        if targs.pandas:
-            s = targs.pandas.split("$")
-            pandas_args = s[0].split("@")
-            if len(pandas_args) == 1:
-                self.env["ax"] = teval(pandas_args[0], s[1:], self.env)
-            elif len(pandas_args) == 2:
-                self.env[pandas_args[0].strip()] = teval(pandas_args[1], s[1:], self.env)
-            else:
-                raise UsageError("pandas option has wrong syntax on using '@': %s"%targs.pandas)
-
-        elif not targs.subplot:
-            self.axes["ax"] = self.figure.add_subplot(111)
+                getattr(self.figure, funcname)(*vargs, **kwargs)
 
         # plotting
         plots = []
         if targs.plot:
             for plot_arg in targs.plot:
-
-                vargs = []
-                for i in range(len(plot_arg.vargs)):
-                    vargs.append(eval(plot_arg.vargs[i], self._env))
-
-                kwargs = {}
-                for k in plot_arg.kwargs:
-                    kwargs[k] = eval(plot_arg.kwargs[k], self._env)
+                self._eval(plot_arg)
+                vargs = plot_arg.vargs
+                kwargs = plot_arg.kwargs
 
                 nctx = len(plot_arg.context)
 
@@ -141,179 +179,143 @@ Examples
 
         # title setting
         if targs.title:
-            for title_arg in targs.title:
-                s = title_arg.split("$")
+            self._eval(targs.title)
+            vargs = targs.title.vargs
+            kwargs = targs.title.kwargs
 
-                # syntax: [axname[,axname...]@]funcargs
-                # text, varmap, self.env, evals
-                items, vargs, kwargs = parse_optionvalue(s[0], s[1:], self.env, evals=[True])
-
-                if len(items) == 0:
-                    axes = [self.env["ax"]]
-                elif len(items) == 1:
-                    axes = items[0][0]
-                else:
-                    UsageError("The synaxt error near '@': %s"%title_arg)
-
-                for ax in axes:
-                    ax.set_title(*vargs, **kwargs)
+            if len(targs.title.context) == 0:
+                self.axes["ax"].set_title(*vargs, **kwargs)
+            elif len(targs.title.context) == 1:
+                self.axes[targs.title.context[0]].set_title(*vargs, **kwargs)
+            else:
+                UsageError("The synaxt error near '@': %s" % str(targs.title))
 
         # x-axis setting
         if targs.xaxis:
             for xaxis_arg in targs.xaxis:
-                s = xaxis_arg.split("$")
+                self._eval(xaxis_arg)
+                vargs = xaxis_arg.vargs
+                kwargs = xaxis_arg.kwargs
+                funcname = "set_x"+xaxis_arg.context[0]
 
-                # syntax: [axname[, axname...]@]funcname@funcargs
-                # text, varmap, self.env, evals
-                items, vargs, kwargs = parse_optionvalue(s[0], s[1:], self.env, evals=[True, False])
+                if len(xaxis_arg.context) == 1:
+                    ax = self.axes["ax"]
 
-                if len(items) == 1:
-                    axes = [self.env["ax"]]
-                    funcname = "set_x"+items[0][0][0]
-                elif len(items) == 2:
-                    axes = items[0][0]
-                    funcname = "set_x"+items[1][0][0]
+                elif len(xaxis_arg.context) == 2:
+                    ax = self.axes[xaxis_arg.context[1]]
+
                 else:
-                    UsageError("Following option needs one or two items at the left of @: %s"%xaxis_arg)
+                    UsageError("Following option needs one or two items at the left of @: %s" % str(xaxis_arg))
 
-                for ax in axes:
-                    if hasattr(ax, funcname):
-                        getattr(ax, funcname)(*vargs, **kwargs)
-                    else:
-                        # TODO: handling this case
-                        pass
+                getattr(ax, funcname)(*vargs, **kwargs)
 
        # y-axis setting
         if targs.yaxis:
             for yaxis_arg in targs.yaxis:
-                s = yaxis_arg.split("$")
+                self._eval(yaxis_arg)
+                vargs = yaxis_arg.vargs
+                kwargs = yaxis_arg.kwargs
+                funcname = "set_y"+yaxis_arg.context[0]
 
-                # syntax: [axname[, axname...]@]funcname@funcargs
-                # text, varmap, self.env, evals
-                items, vargs, kwargs = parse_optionvalue(s[0], s[1:], self.env, evals=[True, False])
+                if len(yaxis_arg.context) == 1:
+                    ax = self.axes["ax"]
 
-                if len(items) == 1:
-                    axes = [self.env["ax"]]
-                    funcname = "set_y"+items[0][0][0]
-                elif len(items) == 2:
-                    axes = items[0][0]
-                    funcname = "set_y"+items[1][0][0]
+                elif len(yaxis_arg.context) == 2:
+                    ax = self.axes[yaxis_arg.context[1]]
+
                 else:
-                    UsageError("Following option needs one or two items at the left of @: %s"%yaxis_arg)
+                    UsageError("Following option needs one or two items at the left of @: %s" % str(yaxis_arg))
 
-                for ax in axes:
-                    if hasattr(ax, funcname):
-                        getattr(ax, funcname)(*vargs, **kwargs)
-                    else:
-                        # TODO: handling this case
-                        pass
+                getattr(ax, funcname)(*vargs, **kwargs)
 
         # z-axis setting
         if targs.zaxis:
             for zaxis_arg in targs.zaxis:
-                s = zaxis_arg.split("$")
+                self._eval(zaxis_arg)
+                vargs = zaxis_arg.vargs
+                kwargs = zaxis_arg.kwargs
+                funcname = "set_z"+zaxis_arg.context[0]
 
-                # syntax: [axname[, axname...]@]funcname@funcargs
-                # text, varmap, self.env, evals
-                items, vargs, kwargs = parse_optionvalue(s[0], s[1:], self.env, evals=[True, False])
+                if len(zaxis_arg.context) == 1:
+                    ax = self.axes["ax"]
 
-                if len(items) == 1:
-                    axes = [self.env["ax"]]
-                    funcname = "set_z"+items[0][0][0]
-                elif len(items) == 2:
-                    axes = items[0][0]
-                    funcname = "set_z"+items[1][0][0]
+                elif len(zaxis_arg.context) == 2:
+                    ax = self.axes[zaxis_arg.context[1]]
+
                 else:
-                    UsageError("Following option needs one or two items at the left of @: %s"%zaxis_arg)
+                    UsageError("Following option needs one or two items at the left of @: %s" % str(zaxis_arg))
 
-                for ax in axes:
-                    if hasattr(ax, funcname):
-                        getattr(ax, funcname)(*vargs, **kwargs)
-                    else:
-                        # TODO: handling this case
-                        pass
+                getattr(ax, funcname)(*vargs, **kwargs)
 
         # grid setting
         if targs.g:
-            for key, value in self.env.items():
-                if isinstance(value, self.env['mpl'].axes.Axes):
-                    value.grid()
+            for ax in self.axes.values():
+                ax.grid()
 
         if targs.grid:
             for grid_arg in targs.grid:
-                s = grid_arg.split("$")
+                self._eval(grid_arg)
+                vargs = grid_arg.vargs
+                kwargs = grid_arg.kwargs
 
-                # syntax: [axname[,axname...]@]funcargs
-                # text, varmap, self.env, evals
-                items, vargs, kwargs = parse_optionvalue(s[0], s[1:], self.env, evals=[True])
+                if len(grid_arg.context) == 0:
+                    ax = self.axes["ax"]
 
-                if len(items) == 0:
-                    axes = [self.env["ax"]]
-                elif len(items) == 1:
-                    axes = items[0][0]
+                elif len(grid_arg.context) == 1:
+                    ax = self.axes[grid_arg.context[0]]
+
                 else:
-                    UsageError("The synaxt error near '@': %s"%grid_arg)
+                    UsageError("Following option needs one or two items at the left of @: %s" % str(grid_arg))
 
-                for ax in axes:
-                    ax.grid(*vargs, **kwargs)
+                ax.grid(*vargs, **kwargs)
 
         # legend setting
         if targs.l:
-            for key, value in self.env.items():
-                if isinstance(value, self.env['mpl'].axes.Axes):
-                    value.legend()
+            for ax in self.axes.values():
+                ax.legend()
 
         if targs.legend:
             for legend_arg in targs.legend:
-                s = legend_arg.split("$")
+                self._eval(legend_arg)
+                vargs = legend_arg.vargs
+                kwargs = legend_arg.kwargs
 
-                # syntax: [axname[,axname...]@]funcargs
-                # text, varmap, self.env, evals
-                items, vargs, kwargs = parse_optionvalue(s[0], s[1:], self.env, evals=[True])
+                if len(legend_arg.context) == 0:
+                    ax = self.axes["ax"]
 
-                if len(items) == 0:
-                    axes = [self.env["ax"]]
-                elif len(items) == 1:
-                    axes = items[0][0]
+                elif len(legend_arg.context) == 1:
+                    ax = self.axes[legend_arg.context[0]]
+
                 else:
-                    UsageError("The synaxt error near '@': %s"%legend_arg)
+                    UsageError("Following option needs one or two items at the left of @: %s" % str(legend_arg))
 
-                for ax in axes:
-                    ax.legend(*vargs, **kwargs)
+                ax.legend(*vargs, **kwargs)
 
         # execute axes functions
         if targs.axes:
             for axes_arg in targs.axes:
-                s = axes_arg.split("$")
-                # syntax: [axname[, axname...]@]funcname@funcargs
-                # text, varmap, self.env, evals
-                items, vargs, kwargs = parse_optionvalue(s[0], s[1:], self.env, evals=[True, False])
+                self._eval(axes_arg)
+                vargs = axes_arg.vargs
+                kwargs = axes_arg.kwargs
+                funcname = axes_arg.context[0]
 
-                if len(items) == 1:
-                    axes = [self.env["ax"]]
-                    funcname = items[0][0][0]
-                elif len(items) == 2:
-                    axes = items[0][0]
-                    funcname = items[1][0][0]
+                if len(axes_arg.context) == 1:
+                    ax = self.axes["ax"]
+
+                elif len(axes_arg.context) == 2:
+                    ax = self.axes[axes_arg.context[1]]
+
                 else:
-                    UsageError("Following option needs one or two items at the left of @: %s"%axes_arg)
+                    UsageError("Following option needs one or two items at the left of @: %s" % str(axes_arg))
 
-                for ax in axes:
-                    getattr(ax, funcname)(*vargs, **kwargs)
+                getattr(ax, funcname)(*vargs, **kwargs)
 
         elif not self.plots:
             if targs.figure:
                 pass
             elif targs.data:
                 for d in targs.data:
-                    if isinstance(d, str):
-                        self.env["ax"].plot(eval(d))
-                    else: 
-                        try:
-                            iter(d)
-                            self.env["ax"].plot(d)
-                        except TypeError as te:
-                            pass
+                    self.axes["ax"].plot(d)
             else:
                 raise UsageError("There is no data to plot.")
 
@@ -323,6 +325,7 @@ Examples
             # orientation='portrait', papertype=None, format=None,
             # transparent=False, bbox_inches=None, pad_inches=0.1,
             # frameon=None)
+            self._eval(targs.save)
             name = targs.save.vargs.pop(0)
             vargs = targs.save.vargs
             kwargs = targs.save.kwargs
@@ -330,9 +333,9 @@ Examples
 
         # displyaing an image on screen
         if not targs.noshow:
-            self._env['plt'].show()
+            pyplot.show()
 
         self.figure.clear()
-        self._env["plt"].close(self.figure)
+        pyplot.close(self.figure)
 
         #self.add_forward(data=data)
