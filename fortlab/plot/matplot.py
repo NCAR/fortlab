@@ -27,8 +27,8 @@ Examples
         self.add_option_argument('-t', '--title', metavar='title',
                 param_parse=True,
                 help='(E,P) plot title')
-        self.add_option_argument('-c', '--eval', metavar='eval',
-                action='append', param_parse=True,
+        self.add_option_argument('-c', '--eval', metavar='expr',
+                action='append', param_parse=True, dest="calc",
                 help='(E,P) evaluate an Python expression')
         self.add_option_argument('-p', '--plot', metavar='plot type',
                 action='append', param_parse=True,
@@ -93,11 +93,11 @@ Examples
 
     def perform(self, targs):
 
-        if targs.eval:
-            for eval_arg in targs.eval:
-                self._eval(eval_arg)
+        if targs.calc:
+            for calc_arg in targs.calc:
+                self._eval(calc_arg)
 
-                for lhs, rhs in eval_arg.kwargs.items():
+                for lhs, rhs in calc_arg.kwargs.items():
                     self._env[lhs] = rhs
 
         # figure setting
