@@ -90,6 +90,26 @@ class TaskMatplotTests(unittest.TestCase):
         #import pdb; pdb.set_trace()
         self._default_assert(retval)
 
+    def test_clone(self):
+
+        argv = [
+            "--multiproc", "2",
+            "--clone", "[[1,2,3],[3,5,2]]"
+        ]
+
+        subargv = [matplot] + self.argv + [
+            "--save", "'%d.png'%_pathid_",
+        ]
+
+        retval, forward = pyloco.perform("", argv, subargv)
+
+        #import pdb; pdb.set_trace()
+        self.assertEqual(retval, 0)
+        self.assertTrue(os.path.exists("0.png"))
+        os.remove("0.png")
+        self.assertTrue(os.path.exists("1.png"))
+        os.remove("1.png")
+
     def test_legend(self):
 
         argv = self.argv + [
