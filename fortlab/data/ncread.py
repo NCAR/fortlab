@@ -43,11 +43,15 @@ Examples
 
         return dim
 
-    def _get_variables(self, group):
+    def _get_variables(self, group, indata):
 
         var = {}
 
         for variable in group.variables.values():
+
+            if "only" in indata and group.path+variable.name not in indata["only"]:
+                continue
+
             _v = {}
 
             for _n in dir(variable):
@@ -74,7 +78,7 @@ Examples
     def _collect_group(self, group, indata, outdata, parent_group):
 
         outdata["dims"] = self._get_dimensions(group)
-        outdata["vars"] = self._get_variables(group)
+        outdata["vars"] = self._get_variables(group, indata)
         outdata["ncattrs"] = self._get_ncattrs(group)
 
         outdata["cmptypes"] = group.cmptypes

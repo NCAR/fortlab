@@ -6,17 +6,21 @@ import numpy
 
 class Plotter(object):
 
-    def get_variable(self, data, varpath):
+    def get_variable(self, group, indata, outdata, parent_group):
 
-        variables = None
-        
-        for item in varpath.split("/"):
-            if variables is None:
-                variables = data
-            else:
-                variables = variables["groups"][item]["variables"]
+        import pdb; pdb.set_trace()
 
-        return variables[item] if variables else None
+#    def get_variable(self, data, varpath):
+#
+#        variables = None
+#        
+#        for item in varpath.split("/"):
+#            if variables is None:
+#                variables = data
+#            else:
+#                variables = variables["groups"][item]["variables"]
+#
+#        return variables[item] if variables else None
 
     def guess_dim(self, data, idim):
 
@@ -84,77 +88,25 @@ Examples
         self.add_option_argument("-p", "--plot", type=str, action="append",
                 help="plot configuration", metavar="plot", param_parse=True)
 
-        self.add_option_argument("-l", "--list", action="store_true",
-                help="list variables in a netcdf file")
-        self.add_option_argument("-s", "--summary", action="store_true",
-                help="variable information")
-
         self.register_forward("data",
-                help="netcdf variables in Python dictionary")
+                help="T.B.D.")
 
-    def _desc(self, names, data, verbose=False, namepath="/"):
+    def traverse(self, group, indata, outdata, parent_group=None,
+                 F1=None, F2=None, F3=None, F4=None):
 
-        dimensions = data["dimensions"]
-        variables = data["variables"]
-        groups = data["groups"]
+        if F1: F1(group, indata, outdata, parent_group)
 
-        for name in names:
-            if name in dimensions:
-                continue
+        import pdb; pdb.set_trace()
+        for g in group.groups.items():
+            d = F2(g, indata, outdata, group) if F2 else outdata
+            self.traverse(g, indata, d, parent_group=group)
+            if F3: F3(g, indata, d, group)
 
-            var = variables[name]
-
-            long_name = var.get(self.aliases["name"], "no descriptive name is found")
-            units = var.get(self.aliases["unit"], "unit-unknown")
-            dims = var.get(self.aliases["dimension"], "dimension-unknown")
-            print("{0}:\t{1} ({2}, {3})".format(name, long_name, units, dims))
-
-            if verbose:
-                for attr, value in var.items():
-                    if attr in ("data", self.aliases["name"], self.aliases["unit"], self.aliases["dimension"]):
-                        continue
-                    print("    - {0}: {1}".format(attr, str(value)))
-                print("")
-
-        for gname, group in groups.items():
-            newpath = "%s/%s" % (namepath, gname)
-            print("\n[%s]" % newpath)
-            self._desc(group["variables"].keys(), group, verbose=verbose, namepath=newpath)
+        if F4: F4(group, indata, outdata, parent_group)
 
     def perform(self, targs):
 
         indata = targs.data
-
-        if targs.list:
-
-            print("\n[root group]")
-            self._desc(indata["variables"].keys(), indata) 
-
-            return
-
-        if targs.summary:
-
-            if not targs.variable or any([v=="*" for v in targs.variable]):
-                svars = indata["variables"].keys()
-
-            else:
-                svar = targs.variable
-
-            for svar in svars:
-                group = None
-                name = None
-                for item in svar.split("/"):
-                    name = item
-                    if group is None:
-                        group = indata
-                    else:
-                        import pdb; pdb.set_trace()
-                        group = group["groups"][item]
-            
-                if name and group:
-                    self._desc([name], group, verbose=True) 
-
-            return
 
         if targs.plot:
             plotter = Plotter()
@@ -213,13 +165,15 @@ Examples
             yname = opt.vargs.pop(1)
             xname = opt.vargs.pop(0)
 
-        Z = plotter.get_variable(data, zname)
+
+        indata, outdata = {"name": zname}, {}
+        Z = self.traverse(data, indata, outdata, F1=self._get_variable, F2=None, F3=None, F4=None)
+
         Y = plotter.get_ydim(Z, yname)
         X = plotter.get_xdim(Z, xname)
 
         #if not yname:
 
-        import pdb; pdb.set_trace()        
 
 #        forward = {"data": self.split_data(data, "XYD")}
 #
