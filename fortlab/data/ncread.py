@@ -2,7 +2,7 @@
 
 import netCDF4
 import pyloco
-
+from nctools_util import normpath
 
 class NCRead(pyloco.Task):
     """Read a netcdf data file and convert data to a Python dictionary
@@ -15,7 +15,7 @@ Examples
 """
     _name_ = "ncread"
     _version_ = "0.1.0"
-    _install_requires = ["netCDF4"]
+    _install_requires = ["netCDF4", "nctools_util"]
 
     def __init__(self, parent):
 
@@ -31,7 +31,7 @@ Examples
         self.register_forward("data",
                 help="netcdf variables in Python dictionary")
 
-    def _get_dimensions(self, group):
+    def _get_dimensions(self, group, indata):
 
         dim = {}
 
@@ -41,6 +41,7 @@ Examples
             _d["isunlimited"] = dimension.isunlimited()
             dim[dimension.name] = _d
 
+        indata["dims"][group.path] = dim
         return dim
 
     def _get_variables(self, group, indata):
@@ -49,7 +50,10 @@ Examples
 
         for variable in group.variables.values():
 
-            if "only" in indata and group.path+variable.name not in indata["only"]:
+            if variable.name in indata["dims"][group.path]:
+                pass
+
+            elif "only" in indata and group.path+variable.name not in indata["only"]:
                 continue
 
             _v = {}
@@ -62,11 +66,16 @@ Examples
 
             _v["data"] = variable[:]
             name = _v.pop("name")
-            var[name] = _v
+
+            if name in indata["dims"][group.path]:
+                indata["dims"][group.path][name]["variable"] = _v
+
+            else:
+                var[name] = _v
 
         return var
 
-    def _get_ncattrs(self, group):
+    def _get_ncattrs(self, group, indata):
 
         attrs = {}
 
@@ -77,9 +86,9 @@ Examples
 
     def _collect_group(self, group, indata, outdata, parent_group):
 
-        outdata["dims"] = self._get_dimensions(group)
+        outdata["dims"] = self._get_dimensions(group, indata)
         outdata["vars"] = self._get_variables(group, indata)
-        outdata["ncattrs"] = self._get_ncattrs(group)
+        outdata["ncattrs"] = self._get_ncattrs(group, indata)
 
         outdata["cmptypes"] = group.cmptypes
         outdata["vltypes"] = group.vltypes
@@ -151,7 +160,7 @@ Examples
             self.traverse(rootgrp, attrs, {}, F1=self._desc_vars, F2=self._desc_path)
 
         if targs.info:
-            info = [(s if s.startswith("/") else "/"+s) for s in targs.info]
+            info = [normpath(s, type=None) for s in targs.info]
             attrs = {"verbose": True, "only": info}
             self.traverse(rootgrp, attrs, {}, F1=self._desc_vars, F2=self._desc_path)
 
@@ -159,8 +168,9 @@ Examples
         outdata = {}
 
         if targs.variable:
-            variables = [(s if s.startswith("/") else "/"+s) for s in targs.variable]
+            variables = [normpath(s, type="variable") for s in targs.variable]
             indata["only"] = variables
+            indata["dims"] = {}
             self.traverse(rootgrp, indata, outdata, F1=self._collect_group,
                           F2=self._get_groupdict)
         else:
