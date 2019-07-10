@@ -41,7 +41,14 @@ Examples
             _d["isunlimited"] = dimension.isunlimited()
             dim[dimension.name] = _d
 
-        indata["dims"][group.path] = dim
+        if "dims" in indata:
+            dims = indata["dims"]
+
+        else:
+            dims = {}
+            indata["dims"] = dims
+
+        dims[group.path] = dim
         return dim
 
     def _get_variables(self, group, indata):
@@ -170,7 +177,6 @@ Examples
         if targs.variable:
             variables = [normpath(s, type="variable") for s in targs.variable]
             indata["only"] = variables
-            indata["dims"] = {}
             self.traverse(rootgrp, indata, outdata, F1=self._collect_group,
                           F2=self._get_groupdict)
         else:

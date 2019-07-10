@@ -2,93 +2,54 @@
 
 import pyloco
 import numpy
-
+from nctools_util import normpath, traverse, get_var, get_dim, get_slice_from_dims
 
 class Plotter(object):
 
-    def traverse(self, group, indata, outdata, parent_group=None,
-                 F1=None, F2=None, F3=None, F4=None):
+    def guess_dim(self, data, idim):
 
-        if F1: F1(group, indata, outdata, parent_group)
+        index = 0
 
-        for g in group["groups"].items():
-            d = F2(g, indata, outdata, group) if F2 else outdata
-            self.traverse(g, indata, d, parent_group=group)
-            if F3: F3(g, indata, d, group)
+        import pdb; pdb.set_trace()
+        for dimname in data["dimensions"]:
+            if len(dim['data']) <= 1:
+                continue
 
-        if F4: F4(group, indata, outdata, parent_group)
+            if index == idim:
+                return dimname, dim
 
-    def get_variable(self, group, indata, outdata, parent_group):
+            index += 1
 
-        if indata:
-            for vname, var in group["vars"].items():
-                vpath = group["path"] + vname
-                if vpath in indata:
-                    outdata[vpath] = var
+        
+    def get_dim(self, data, name):
 
-    def normpath(self, path, pathtype="variable"):
+        import pdb; pdb.set_trace()
+        for dimname, dim in data["dimensions"]:
+            if dimname == name:
+                return dimname, dim
 
-        path = [p.strip() for p in path.split("/") if p.strip()]
+    def _get_dim(self, data, name, idx):
 
-        if pathtype in ("group",):
-            return "/" + "/".join(path) + "/"
-        elif pathtype in ("variable", "attribute"):
-            return "/" + "/".join(path)
+        if name is None:
+            return self.guess_dim(data, idx)
+        else:
+            return self.get_dim(data, name)
 
-#    def get_variable(self, data, varpath):
-#
-#        variables = None
-#        
-#        for item in varpath.split("/"):
-#            if variables is None:
-#                variables = data
-#            else:
-#                variables = variables["groups"][item]["variables"]
-#
-#        return variables[item] if variables else None
-#
-#    def guess_dim(self, data, idim):
-#
-#        index = 0
-#
-#        for dimname, dim in data["dimensions"]:
-#            if len(dim['data']) <= 1:
-#                continue
-#
-#            if index == idim:
-#                return dimname, dim
-#
-#            index += 1
-#
-#        
-#    def get_dim(self, data, name):
-#
-#        for dimname, dim in data["dimensions"]:
-#            if dimname == name:
-#                return dimname, dim
-#
-#    def _get_dim(self, data, name, idx):
-#
-#        if name is None:
-#            return self.guess_dim(data, idx)
-#        else:
-#            return self.get_dim(data, name)
-#
-#    def get_xdim(self, data, name):
-#
-#        return self._get_dim(data, name, 0)
-#
-#    def get_ydim(self, data, name):
-#
-#        return self._get_dim(data, name, 1)
-#
-#    def get_zdim(self, data, name):
-#
-#        return self._get_dim(data, name, 2)
-#
-#    def get_tdim(self, data, name):
-#
-#        return self._get_dim(data, name, 3)
+    def get_xdim(self, data, name):
+
+        return self._get_dim(data, name, 0)
+
+    def get_ydim(self, data, name):
+
+        return self._get_dim(data, name, 1)
+
+    def get_zdim(self, data, name):
+
+        return self._get_dim(data, name, 2)
+
+    def get_tdim(self, data, name):
+
+        return self._get_dim(data, name, 3)
 
 class NCPlot(pyloco.Task):
     """Read a NCD data and generate plot(s)
@@ -144,18 +105,6 @@ Examples
             return -1
 
         #self.add_forward(data=outdata)
-
-    def get_variable(self, data, varpath):
-
-        variables = None
-        
-        for item in varpath.split("/"):
-            if variables is None:
-                variables = data
-            else:
-                variables = variables["groups"][item]["variables"]
-
-        return variables[item] if variables else None
     
 
     @staticmethod
@@ -163,41 +112,30 @@ Examples
 
         lv = len(opt.vargs)
 
-        if lv == 0:
+        if lv <= 2:
             print("Contour plot syntax error: Not enough argument.")
             return -1
 
-        elif lv <= 2:
-            zname = opt.vargs.pop(0)
-            yname = None
-            xname = None
-
-        elif lv > 2:
+        else:
             zname = opt.vargs.pop(2)
             yname = opt.vargs.pop(1)
             xname = opt.vargs.pop(0)
 
 
-        outvar = plotter.normpath(zname)
-        indata, outdata = [outvar], {}
-        plotter.traverse(data, indata, outdata, F1=plotter.get_variable)
-        Z = outdata[outvar]
-
+        _Z = get_var(data, zname)
+        Y = get_dim(data, yname)
+        X = get_dim(data, xname)
+        Z = get_slice_from_dims(_Z, (xname, yname))
         import pdb; pdb.set_trace()
-        Y = plotter.get_ydim(Z, yname)
-        X = plotter.get_xdim(Z, xname)
 
-        #if not yname:
+        forward = {"data": [X["variable"]["data"], Y["variable"]["data"], Z]}
 
-
-#        forward = {"data": self.split_data(data, "XYD")}
-#
 #        params = ", " + params if params else ""
-#        plot_arg = ("_{data[0]:arg}_, _{data[1]:arg}_,"
-#                    "_{data[2]:arg}_%s@contour" % params)
-#
-#        argv = [
-#            "-p", plot_arg,
-#        ]
-#
-#        pyloco.perform("matplot", argv=argv, forward=forward)
+        plot_arg = ("_{data[0]:arg}_, _{data[1]:arg}_,"
+                    "_{data[2]:arg}_@contour")
+
+        argv = [
+            "-p", plot_arg,
+        ]
+
+        pyloco.perform("matplot", argv=argv, forward=forward)
