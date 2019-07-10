@@ -6,9 +6,34 @@ import numpy
 
 class Plotter(object):
 
+    def traverse(self, group, indata, outdata, parent_group=None,
+                 F1=None, F2=None, F3=None, F4=None):
+
+        if F1: F1(group, indata, outdata, parent_group)
+
+        for g in group["groups"].items():
+            d = F2(g, indata, outdata, group) if F2 else outdata
+            self.traverse(g, indata, d, parent_group=group)
+            if F3: F3(g, indata, d, group)
+
+        if F4: F4(group, indata, outdata, parent_group)
+
     def get_variable(self, group, indata, outdata, parent_group):
 
-        import pdb; pdb.set_trace()
+        if indata:
+            for vname, var in group["vars"].items():
+                vpath = group["path"] + vname
+                if vpath in indata:
+                    outdata[vpath] = var
+
+    def normpath(self, path, pathtype="variable"):
+
+        path = [p.strip() for p in path.split("/") if p.strip()]
+
+        if pathtype in ("group",):
+            return "/" + "/".join(path) + "/"
+        elif pathtype in ("variable", "attribute"):
+            return "/" + "/".join(path)
 
 #    def get_variable(self, data, varpath):
 #
@@ -21,49 +46,49 @@ class Plotter(object):
 #                variables = variables["groups"][item]["variables"]
 #
 #        return variables[item] if variables else None
-
-    def guess_dim(self, data, idim):
-
-        index = 0
-
-        for dimname, dim in data["dimensions"]:
-            if len(dim['data']) <= 1:
-                continue
-
-            if index == idim:
-                return dimname, dim
-
-            index += 1
-
-        
-    def get_dim(self, data, name):
-
-        for dimname, dim in data["dimensions"]:
-            if dimname == name:
-                return dimname, dim
-
-    def _get_dim(self, data, name, idx):
-
-        if name is None:
-            return self.guess_dim(data, idx)
-        else:
-            return self.get_dim(data, name)
-
-    def get_xdim(self, data, name):
-
-        return self._get_dim(data, name, 0)
-
-    def get_ydim(self, data, name):
-
-        return self._get_dim(data, name, 1)
-
-    def get_zdim(self, data, name):
-
-        return self._get_dim(data, name, 2)
-
-    def get_tdim(self, data, name):
-
-        return self._get_dim(data, name, 3)
+#
+#    def guess_dim(self, data, idim):
+#
+#        index = 0
+#
+#        for dimname, dim in data["dimensions"]:
+#            if len(dim['data']) <= 1:
+#                continue
+#
+#            if index == idim:
+#                return dimname, dim
+#
+#            index += 1
+#
+#        
+#    def get_dim(self, data, name):
+#
+#        for dimname, dim in data["dimensions"]:
+#            if dimname == name:
+#                return dimname, dim
+#
+#    def _get_dim(self, data, name, idx):
+#
+#        if name is None:
+#            return self.guess_dim(data, idx)
+#        else:
+#            return self.get_dim(data, name)
+#
+#    def get_xdim(self, data, name):
+#
+#        return self._get_dim(data, name, 0)
+#
+#    def get_ydim(self, data, name):
+#
+#        return self._get_dim(data, name, 1)
+#
+#    def get_zdim(self, data, name):
+#
+#        return self._get_dim(data, name, 2)
+#
+#    def get_tdim(self, data, name):
+#
+#        return self._get_dim(data, name, 3)
 
 class NCPlot(pyloco.Task):
     """Read a NCD data and generate plot(s)
@@ -90,19 +115,6 @@ Examples
 
         self.register_forward("data",
                 help="T.B.D.")
-
-    def traverse(self, group, indata, outdata, parent_group=None,
-                 F1=None, F2=None, F3=None, F4=None):
-
-        if F1: F1(group, indata, outdata, parent_group)
-
-        import pdb; pdb.set_trace()
-        for g in group.groups.items():
-            d = F2(g, indata, outdata, group) if F2 else outdata
-            self.traverse(g, indata, d, parent_group=group)
-            if F3: F3(g, indata, d, group)
-
-        if F4: F4(group, indata, outdata, parent_group)
 
     def perform(self, targs):
 
@@ -166,9 +178,12 @@ Examples
             xname = opt.vargs.pop(0)
 
 
-        indata, outdata = {"name": zname}, {}
-        Z = self.traverse(data, indata, outdata, F1=self._get_variable, F2=None, F3=None, F4=None)
+        outvar = plotter.normpath(zname)
+        indata, outdata = [outvar], {}
+        plotter.traverse(data, indata, outdata, F1=plotter.get_variable)
+        Z = outdata[outvar]
 
+        import pdb; pdb.set_trace()
         Y = plotter.get_ydim(Z, yname)
         X = plotter.get_xdim(Z, xname)
 
@@ -186,28 +201,3 @@ Examples
 #        ]
 #
 #        pyloco.perform("matplot", argv=argv, forward=forward)
-
-
-    def split_data(self, data, datatypes):
-
-        outdata = []
-        dimensions = data["dimensions"]
-        import pdb; pdb.set_trace()
-
-        for datatype in datatypes:
-            if datatype == "X":
-                import pdb; pdb.set_trace()
-            elif datatype == "Y":
-                import pdb; pdb.set_trace()
-            elif datatype == "Z":
-                import pdb; pdb.set_trace()
-            elif datatype == "T":
-                import pdb; pdb.set_trace()
-            elif datatype == "D":
-                import pdb; pdb.set_trace()
-            else:
-                raise Exception("Unknown datatype: %s" % datatype)
-
-            outdata.append(output)
-
-        return outdata
