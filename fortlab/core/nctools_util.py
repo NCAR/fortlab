@@ -57,15 +57,24 @@ def get_dim(group, name):
 
 def get_slice_from_dims(var, dims):
 
-    data = var["data"]
     slices = []
+    order = {}
 
     for dname in var["dimensions"]:
         if dname in dims:
             slices.append(":")
+            order[dname] = len(order)
 
         else:
             slices.append("0")
 
     # TODO : change order of dimension
-    return eval("data[%s]" % ",".join(slices))
+    sliced = eval("var['data'][%s]" % ",".join(slices))
+
+    import pdb; pdb.set_trace()
+    for idx, dim in enumerate(dims):
+        if order[dim] != idx:
+            import pdb; pdb.set_trace()
+
+
+    return sliced

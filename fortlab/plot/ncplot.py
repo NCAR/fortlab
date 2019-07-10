@@ -126,7 +126,6 @@ Examples
         Y = get_dim(data, yname)
         X = get_dim(data, xname)
         Z = get_slice_from_dims(_Z, (xname, yname))
-        import pdb; pdb.set_trace()
 
         forward = {"data": [X["variable"]["data"], Y["variable"]["data"], Z]}
 
