@@ -71,10 +71,11 @@ def get_slice_from_dims(var, dims):
     # TODO : change order of dimension
     sliced = eval("var['data'][%s]" % ",".join(slices))
 
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     for idx, dim in enumerate(dims):
         if order[dim] != idx:
-            import pdb; pdb.set_trace()
+            pass
+            #import pdb; pdb.set_trace()
 
 
     return sliced

@@ -74,6 +74,9 @@ Examples
         self.add_option_argument("-p", "--plot", type=str, action="append",
                 help="plot configuration", metavar="plot", param_parse=True)
 
+        self.add_option_argument("-s", "--save-image", type=str,
+                help="save image file", metavar="path")
+
         self.register_forward("data",
                 help="T.B.D.")
 
@@ -99,7 +102,7 @@ Examples
                     continue
 
                 opt.context = []
-                plot(plotter, indata, opt)
+                plot(plotter, indata, opt, save=targs.save_image)
         else:
             print("No plot is specified.")
             return -1
@@ -108,7 +111,7 @@ Examples
     
 
     @staticmethod
-    def plot_contour(plotter, data, opt):
+    def plot_contour(plotter, data, opt, save=None):
 
         lv = len(opt.vargs)
 
@@ -130,11 +133,14 @@ Examples
         forward = {"data": [X["variable"]["data"], Y["variable"]["data"], Z]}
 
 #        params = ", " + params if params else ""
-        plot_arg = ("_{data[0]:arg}_, _{data[1]:arg}_,"
-                    "_{data[2]:arg}_@contour")
+        plot_arg = ("_{data[0][0]:arg}_, _{data[0][1]:arg}_,"
+                    "_{data[0][2]:arg}_@contour")
 
         argv = [
             "-p", plot_arg,
         ]
+
+        if save:
+            argv.extend(["-s", "'%s'" % save])
 
         pyloco.perform("matplot", argv=argv, forward=forward)
