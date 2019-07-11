@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
   
+import numpy
+
 def normpath(path, type=None):
 
     split = [p.strip() for p in path.split("/") if p.strip()]
@@ -59,11 +61,13 @@ def get_slice_from_dims(var, dims):
 
     slices = []
     order = {}
+    invorder = {}
 
     for dname in var["dimensions"]:
         if dname in dims:
             slices.append(":")
             order[dname] = len(order)
+            invorder[order[dname]] = dname
 
         else:
             slices.append("0")
@@ -71,11 +75,15 @@ def get_slice_from_dims(var, dims):
     # TODO : change order of dimension
     sliced = eval("var['data'][%s]" % ",".join(slices))
 
-    #import pdb; pdb.set_trace()
     for idx, dim in enumerate(dims):
         if order[dim] != idx:
-            pass
-            #import pdb; pdb.set_trace()
+            cidx = order[dim]
+            sliced = numpy.swapaxes(sliced, cidx, idx)
+            cdim = invorder[idx]
 
+            order[dim] = idx
+            order[cdim] = cidx
+            invorder[idx] = dim
+            invorder[cidx] = cdim
 
     return sliced

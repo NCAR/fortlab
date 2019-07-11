@@ -128,17 +128,14 @@ Examples
         _Z = get_var(data, zname)
         Y = get_dim(data, yname)
         X = get_dim(data, xname)
-        Z = get_slice_from_dims(_Z, (xname, yname))
+        Z = get_slice_from_dims(_Z, (yname, xname))
 
         forward = {"data": [X["variable"]["data"], Y["variable"]["data"], Z]}
 
-#        params = ", " + params if params else ""
         plot_arg = ("_{data[0][0]:arg}_, _{data[0][1]:arg}_,"
                     "_{data[0][2]:arg}_@contour")
 
-        argv = [
-            "-p", plot_arg,
-        ]
+        argv = ["-p", plot_arg]
 
         if save:
             argv.extend(["-s", "'%s'" % save])
