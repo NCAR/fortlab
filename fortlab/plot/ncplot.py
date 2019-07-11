@@ -71,14 +71,15 @@ Examples
 
         self.add_data_argument("data", required=True, help="NCD data")
 
+        self.add_option_argument("-t", "--title", help="plot title")
+
         self.add_option_argument("-p", "--plot", type=str, action="append",
                 help="plot configuration", metavar="plot", param_parse=True)
 
         self.add_option_argument("-s", "--save-image", type=str,
                 help="save image file", metavar="path")
 
-        self.register_forward("data",
-                help="T.B.D.")
+        self.register_forward("data", help="T.B.D.")
 
     def perform(self, targs):
 
@@ -95,6 +96,7 @@ Examples
                     plot = getattr(self, "plot_"+opt.context[0])
 
                 elif len(opt.context) ==2:
+                    print("TWO CONTEXTS")
                     import pdb; pdb.set_trace()
 
                 else:
@@ -102,16 +104,34 @@ Examples
                     continue
 
                 opt.context = []
-                plot(plotter, indata, opt, save=targs.save_image)
+                plot(plotter, indata, opt, targs)
         else:
             print("No plot is specified.")
             return -1
 
         #self.add_forward(data=outdata)
     
+    @staticmethod
+    def _matplot(argv, forward, targs, data):
+
+        if targs.title:
+            path, attr = targs.title.rsplit(".", 1)
+            import pdb; pdb.set_trace()
+            argv.extend(["-t", "'%s'" % targs.title])
+
+        if targs.save_image:
+            argv.extend(["-s", "'%s'" % targs.save_image])
+
+        pyloco.perform("matplot", argv=argv, forward=forward)
 
     @staticmethod
-    def plot_contour(plotter, data, opt, save=None):
+    def plot_contourf(plotter, data, opt, targs, **kwargs):
+        return NCPlot.plot_contour(plotter, data, opt, targs, fill=True, **kwargs)
+
+    @staticmethod
+    def plot_contour(plotter, data, opt, targs, fill=False):
+
+        plotname = "contourf" if fill else "contour"
 
         lv = len(opt.vargs)
 
@@ -133,11 +153,8 @@ Examples
         forward = {"data": [X["variable"]["data"], Y["variable"]["data"], Z]}
 
         plot_arg = ("_{data[0][0]:arg}_, _{data[0][1]:arg}_,"
-                    "_{data[0][2]:arg}_@contour")
+                    "_{data[0][2]:arg}_@%s" % plotname)
 
         argv = ["-p", plot_arg]
 
-        if save:
-            argv.extend(["-s", "'%s'" % save])
-
-        pyloco.perform("matplot", argv=argv, forward=forward)
+        NCPlot._matplot(argv, forward, targs, data)

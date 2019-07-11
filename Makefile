@@ -105,4 +105,13 @@ dev-install: clean ## install the package locally
 
 # >>> pip install Sphinx
 # >>> pip install sphinx_rtd_theme
+#
+ncl:
+	pyloco fortlab/data/ncread.py tests/data/sresa1b_ncar_ccsm3-example.nc --import fortlab/core/nctools_util.py -l
 
+ncv:
+	pyloco fortlab/data/ncread.py tests/data/sresa1b_ncar_ccsm3-example.nc --import fortlab/core/nctools_util.py -i pr
+
+plot:
+	pyloco fortlab/data/ncread.py tests/data/sresa1b_ncar_ccsm3-example.nc --import fortlab/core/nctools_util.py -v ua -- fortlab/plot/ncplot.py -p 'lon,lat,ua@contourf' -s cont1.png -t 'ua.long_name'
+	xdg-open cont1.png
