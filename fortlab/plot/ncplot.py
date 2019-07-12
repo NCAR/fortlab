@@ -4,6 +4,39 @@ import pyloco
 import numpy
 from nctools_util import normpath, traverse, get_var, get_dim, get_slice_from_dims
 
+class VarProxy(object):
+
+    def __new__(self, var):
+
+        obj = super(VarProxy, self).__new__(self)
+        obj._var = var
+        return obj
+
+    def __getattr__(self, attr):
+
+        if attr in self._var:
+            import pdb; pdb.set_trace()
+
+        else:
+            import pdb; pdb.set_trace()
+
+class GroupProxy(object):
+
+    def __new__(self, grp):
+
+        obj = super(VarProxy, self).__new__(self)
+        obj._grp = grp
+        return obj
+
+    def __getattr__(self, attr):
+
+        if attr in self._grp:
+            import pdb; pdb.set_trace()
+
+        else:
+            import pdb; pdb.set_trace()
+
+
 class Plotter(object):
 
     def guess_dim(self, data, idim):
@@ -115,8 +148,26 @@ Examples
     def _matplot(argv, forward, targs, data):
 
         if targs.title:
-            path, attr = targs.title.rsplit(".", 1)
+            _env = {"data": data}
+
+            for a, v in data.items():
+                if a in ("dims", "vars", "groups"):
+                    continue
+
+                _env[n] = v
+
+            for d, v in data['dims'].items():
+                _env[n] = DimProxy(v)
+
+            for g, v in data['groups'].items():
+                _env[n] = GroupProxy(v)
+
+            for n, v in data['vars'].items():
+                _env[n] = VarProxy(v)
+
+            title = eval(targs.title, _env)
             import pdb; pdb.set_trace()
+
             argv.extend(["-t", "'%s'" % targs.title])
 
         if targs.save_image:
