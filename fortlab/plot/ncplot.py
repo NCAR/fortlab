@@ -4,37 +4,73 @@ import pyloco
 import numpy
 from nctools_util import normpath, traverse, get_var, get_dim, get_slice_from_dims
 
-class VarProxy(object):
+# TODO: use eval in the beginning
+# - add first name as a Var Dim or Group proxy
 
-    def __new__(self, var):
+class ProxyBase(object):
 
-        obj = super(VarProxy, self).__new__(self)
-        obj._var = var
+    def __new__(cls, data):
+
+        obj = super(ProxyBase, cls).__new__(cls)
+        obj._data = data
         return obj
 
     def __getattr__(self, attr):
 
-        if attr in self._var:
-            import pdb; pdb.set_trace()
+        if attr in self._data:
+            return self._data[attr]
 
-        else:
-            import pdb; pdb.set_trace()
+        raise AttributeError("'%s' object has no attribute '%s'" %
+                             (self.__class__.__name__, attr))
 
-class GroupProxy(object):
 
-    def __new__(self, grp):
+class VarProxy(ProxyBase):
+    pass
 
-        obj = super(VarProxy, self).__new__(self)
-        obj._grp = grp
-        return obj
+
+class DimProxy(ProxyBase):
+    pass
+
+
+class GroupProxy(ProxyBase):
 
     def __getattr__(self, attr):
 
-        if attr in self._grp:
-            import pdb; pdb.set_trace()
+        if attr in self._data["vars"]:
+            return VarProxy(self._data["vars"][attr])
+
+        elif attr in self._data["dims"]:
+            return DimProxy(self._data["dims"][attr])
+
+        elif attr in self._data and attr not in ("vars", "dims", "groups"):
+            return self._data[attr]
+
+        elif attr in self._data["groups"]:
+            return GroupProxy(self._data["groups"][attr])
 
         else:
-            import pdb; pdb.set_trace()
+            raise AttributeError("'GroupProxy' object has no attribute '%s'" % attr)
+
+    def __getitem__(self, key):
+
+        env = dict(__builtins__)
+        del env["eval"]
+        del env["exec"]
+
+        for k, g in self._data["groups"].items():
+            env[k] = GroupProxy(g)
+
+        for k, a in self._data.items():
+            if k not in ("vars", "dims", "groups"):
+                env[k] = a
+
+        for k, d in self._data["dims"].items():
+            env[k] = DimProxy(d)
+
+        for k, v in self._data["vars"].items():
+            env[k] = VarProxy(v)
+
+        return eval(key, env)
 
 
 class Plotter(object):
@@ -124,20 +160,44 @@ Examples
             for opt in targs.plot:
                 if len(opt.context) == 0:
                     plot = self.plot_contour
+                    ax = "ax"
 
-                elif len(opt.context) ==1:
+                elif len(opt.context) == 1:
                     plot = getattr(self, "plot_"+opt.context[0])
+                    ax = "ax"
 
-                elif len(opt.context) ==2:
-                    print("TWO CONTEXTS")
-                    import pdb; pdb.set_trace()
+                elif len(opt.context) == 2:
+                    plot = getattr(self, "plot_"+opt.context[0])
+                    ax = opt.context[1]
 
                 else:
                     print("More than two contexts: %s" % str(opt.context))
                     continue
 
                 opt.context = []
-                plot(plotter, indata, opt, targs)
+                pname, pvargs, pkwargs = plot(plotter, indata, opt)
+
+                fdata = []
+                pargs = []
+                forward = {"data": fdata}
+
+                for pv in pvargs:
+                    idx = len(pargs)
+                    pargs.append("_{data[0][%d]:arg}_" % idx)
+                    fdata.append(pv)
+
+                for pk, pv in pkwargs:
+                    idx = len(pargs)
+                    pargs.append("%s=_{data[0][%d]:arg}_" % (pk, idx))
+                    fdata.append(pv)
+               
+                plot_arg = ("_{data[0][0]:arg}_, _{data[0][1]:arg}_,"
+                            "_{data[0][2]:arg}_@%s@%s" % (pname, ax))
+
+                argv = ["-p", plot_arg]
+
+                NCPlot._matplot(argv, forward, targs, indata)
+
         else:
             print("No plot is specified.")
             return -1
@@ -147,28 +207,11 @@ Examples
     @staticmethod
     def _matplot(argv, forward, targs, data):
 
+        gproxy = GroupProxy(data)
+
         if targs.title:
-            _env = {"data": data}
-
-            for a, v in data.items():
-                if a in ("dims", "vars", "groups"):
-                    continue
-
-                _env[n] = v
-
-            for d, v in data['dims'].items():
-                _env[n] = DimProxy(v)
-
-            for g, v in data['groups'].items():
-                _env[n] = GroupProxy(v)
-
-            for n, v in data['vars'].items():
-                _env[n] = VarProxy(v)
-
-            title = eval(targs.title, _env)
-            import pdb; pdb.set_trace()
-
-            argv.extend(["-t", "'%s'" % targs.title])
+            title = gproxy[targs.title]
+            argv.extend(["-t", "'%s'" % title])
 
         if targs.save_image:
             argv.extend(["-s", "'%s'" % targs.save_image])
@@ -176,13 +219,11 @@ Examples
         pyloco.perform("matplot", argv=argv, forward=forward)
 
     @staticmethod
-    def plot_contourf(plotter, data, opt, targs, **kwargs):
-        return NCPlot.plot_contour(plotter, data, opt, targs, fill=True, **kwargs)
+    def plot_contourf(plotter, data, opt, **kwargs):
+        return NCPlot.plot_contour(plotter, data, opt, fill=True, **kwargs)
 
     @staticmethod
-    def plot_contour(plotter, data, opt, targs, fill=False):
-
-        plotname = "contourf" if fill else "contour"
+    def plot_contour(plotter, data, opt, fill=False):
 
         lv = len(opt.vargs)
 
@@ -195,17 +236,14 @@ Examples
             yname = opt.vargs.pop(1)
             xname = opt.vargs.pop(0)
 
-
         _Z = get_var(data, zname)
         Y = get_dim(data, yname)
         X = get_dim(data, xname)
         Z = get_slice_from_dims(_Z, (yname, xname))
 
-        forward = {"data": [X["variable"]["data"], Y["variable"]["data"], Z]}
+        plotfunc = "contourf" if fill else "contour"
+        vargs = [X["variable"]["data"], Y["variable"]["data"], Z]
+        kwargs = {}
 
-        plot_arg = ("_{data[0][0]:arg}_, _{data[0][1]:arg}_,"
-                    "_{data[0][2]:arg}_@%s" % plotname)
+        return plotfunc, vargs, kwargs
 
-        argv = ["-p", plot_arg]
-
-        NCPlot._matplot(argv, forward, targs, data)

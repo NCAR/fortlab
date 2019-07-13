@@ -110,7 +110,7 @@ ncl:
 	pyloco fortlab/data/ncread.py tests/data/sresa1b_ncar_ccsm3-example.nc --import fortlab/core/nctools_util.py -l
 
 ncv:
-	pyloco fortlab/data/ncread.py tests/data/sresa1b_ncar_ccsm3-example.nc --import fortlab/core/nctools_util.py -i pr
+	pyloco fortlab/data/ncread.py tests/data/sresa1b_ncar_ccsm3-example.nc --import fortlab/core/nctools_util.py -i ua
 
 plot:
 	pyloco fortlab/data/ncread.py tests/data/sresa1b_ncar_ccsm3-example.nc --import fortlab/core/nctools_util.py -v ua -- fortlab/plot/ncplot.py -p 'lon,lat,ua@contourf' -s cont1.png -t 'ua.long_name'
