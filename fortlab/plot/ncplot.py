@@ -51,28 +51,6 @@ class GroupProxy(ProxyBase):
         else:
             raise AttributeError("'GroupProxy' object has no attribute '%s'" % attr)
 
-    def __getitem__(self, key):
-
-        env = dict(__builtins__)
-        del env["eval"]
-        del env["exec"]
-
-        for k, g in self._data["groups"].items():
-            env[k] = GroupProxy(g)
-
-        for k, a in self._data.items():
-            if k not in ("vars", "dims", "groups"):
-                env[k] = a
-
-        for k, d in self._data["dims"].items():
-            env[k] = DimProxy(d)
-
-        for k, v in self._data["vars"].items():
-            env[k] = VarProxy(v)
-
-        return eval(key, env)
-
-
 class Plotter(object):
 
     def guess_dim(self, data, idim):
@@ -207,10 +185,25 @@ Examples
     @staticmethod
     def _matplot(argv, forward, targs, data):
 
-        gproxy = GroupProxy(data)
+        env = dict(__builtins__)
+        del env["eval"]
+        del env["exec"]
+
+        for k, g in data["groups"].items():
+            env[k] = GroupProxy(g)
+
+        for k, a in data.items():
+            if k not in ("vars", "dims", "groups"):
+                env[k] = a
+
+        for k, d in data["dims"].items():
+            env[k] = DimProxy(d)
+
+        for k, v in data["vars"].items():
+            env[k] = VarProxy(v)
 
         if targs.title:
-            title = gproxy[targs.title]
+            title = eval(targs.title, env)
             argv.extend(["-t", "'%s'" % title])
 
         if targs.save_image:
