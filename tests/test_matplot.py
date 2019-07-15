@@ -93,6 +93,7 @@ class TaskMatplotTests(unittest.TestCase):
     def test_clone(self):
 
         argv = [
+            "--log", "clonetest.log",
             "--multiproc", "2",
             "--clone", "[[1,2,3],[3,5,2]]"
         ]
