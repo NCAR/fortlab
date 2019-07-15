@@ -4,8 +4,8 @@ import pyloco
 import numpy
 from nctools_util import normpath, traverse, get_var, get_dim, get_slice_from_dims
 
-# TODO: use eval in the beginning
-# - add first name as a Var Dim or Group proxy
+# TODO: __getitem__ and __str__ for Proxyies
+#      possible touse matplotlib plots such as ua[:]@contour
 
 class ProxyBase(object):
 
