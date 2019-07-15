@@ -59,7 +59,7 @@ class TaskNcPlotTests(unittest.TestCase):
 
 
         argv = self.ncplot_argv + [
-            "-p", "lon,lat,pr@plot_contour",
+            "-p", "lon,lat,pr@plot_contour", "--noshow"
         ]
 
         forward = {
@@ -84,7 +84,49 @@ class TaskNcPlotTests(unittest.TestCase):
 
 
         argv = self.ncplot_argv + [
-            "-p", "lat,lon,pr@plot_contour",
+            "-p", "lat,lon,pr@plot_contour", "--noshow"
+        ]
+
+        forward = {
+            "data": forward["data"]
+        }
+
+        retval, forward = pyloco.perform(ncplot, argv, forward=forward)
+
+        self._default_assert(retval)
+
+    def test_multiproc(self):
+
+        argv = ["--multiproc", "3", "--clone", "[1,1,1]"]
+        subargv = [ncread, datafile, "-v", "ua", "--import", nctoolsutil, "--",
+                   ncplot, "-p", "lon,lat,ua@plot_contourf", "--noshow", "-s",
+                   "'cont%d.png'%_pathid_", "-t", "ua.original_name + ua.units"]
+
+        retval, forward = pyloco.perform("", argv, subargv)
+
+        self.assertTrue(os.path.exists("cont0.png"))
+        os.remove("cont0.png")
+        self.assertTrue(os.path.exists("cont1.png"))
+        os.remove("cont1.png")
+        self.assertTrue(os.path.exists("cont2.png"))
+        os.remove("cont2.png")
+
+
+    def test_nodim(self):
+
+        argv = [datafile, "-v", "/pr", "--import", nctoolsutil]
+
+        retval, forward = pyloco.perform(ncread, argv)
+
+        self.assertEqual(retval, 0)
+        self.assertIn("data", forward)
+        self.assertIn("dims", forward["data"])
+        self.assertIn("vars", forward["data"])
+        self.assertIn("groups", forward["data"])
+
+
+        argv = self.ncplot_argv + [
+            "-p", "pr@plot_contour", "--noshow"
         ]
 
         forward = {

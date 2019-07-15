@@ -185,15 +185,15 @@ Examples
         lv = len(opt.vargs)
 
         if lv <= 2:
-            print("Contour plot syntax error: Not enough argument.")
-            return -1
-
+            zname = opt.vargs.pop(0)
+            _Z = get_var(data, zname)
+            xname, yname = _Z["dimensions"][-2:]
         else:
             zname = opt.vargs.pop(2)
+            _Z = get_var(data, zname)
             yname = opt.vargs.pop(1)
             xname = opt.vargs.pop(0)
 
-        _Z = get_var(data, zname)
         Y = get_dim(data, yname)
         X = get_dim(data, xname)
         Z = get_slice_from_dims(_Z, (yname, xname))
