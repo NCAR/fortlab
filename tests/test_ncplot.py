@@ -11,7 +11,7 @@ import pyloco
 here, myname = os.path.split(__file__)
 datadir = os.path.join(here, "data")
 rootdir = os.path.realpath(os.path.join(here, ".."))
-ncplot = os.path.join(rootdir, "fortlab", "plot", "ncplot.py")
+ncplot = os.path.join(rootdir, "fortlab", "plot", "ncplot", "ncplot.py")
 imgfile = os.path.join(datadir, "img.png")
 
 ncread = os.path.join(rootdir, "fortlab", "data", "ncread.py")
@@ -26,7 +26,7 @@ class TaskNcPlotTests(unittest.TestCase):
 
         self.ncplot_argv = [
             "--debug",
-            "--save", "%s" % imgfile
+            "--save", "'%s'" % imgfile
         ]
 
     def setUp(self):
@@ -59,7 +59,7 @@ class TaskNcPlotTests(unittest.TestCase):
 
 
         argv = self.ncplot_argv + [
-            "-p", "lon,lat,pr@contour",
+            "-p", "lon,lat,pr@plot_contour",
         ]
 
         forward = {
@@ -84,7 +84,7 @@ class TaskNcPlotTests(unittest.TestCase):
 
 
         argv = self.ncplot_argv + [
-            "-p", "lat,lon,pr@contour",
+            "-p", "lat,lon,pr@plot_contour",
         ]
 
         forward = {
@@ -94,6 +94,8 @@ class TaskNcPlotTests(unittest.TestCase):
         retval, forward = pyloco.perform(ncplot, argv, forward=forward)
 
         self._default_assert(retval)
+
+#pyloco --multiproc 3 --clone [1,1,1] -- fortlab/data/ncread.py tests/data/sresa1b_ncar_ccsm3-example.nc --import fortlab/core/nctools_util.py -v ua -- fortlab/plot/ncplot/ncplot.py --import os -p 'lon,lat,ua@plot_contourf' -s "'cont%d.png'%os.getpid()" -t 'ua.original_name + ua.units' --debug
 
 #    def test_figure(self):
 #

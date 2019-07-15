@@ -11,7 +11,7 @@ import pyloco
 here, myname = os.path.split(__file__)
 datadir = os.path.join(here, "data")
 rootdir = os.path.realpath(os.path.join(here, ".."))
-matplot = os.path.join(rootdir, "fortlab", "plot", "matplot.py")
+matplot = os.path.join(rootdir, "fortlab", "plot", "matplot", "matplot.py")
 imgfile = os.path.join(datadir, "img.png")
 
 class TaskMatplotTests(unittest.TestCase):

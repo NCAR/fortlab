@@ -6,6 +6,25 @@ import matplotlib
 import matplotlib.pyplot as pyplot
 
 
+class Plotter(object):
+
+    def __init__(self, env):
+        self._env = env
+
+    def update_env(self, *vargs, **kwargs):
+
+        for varg in vargs:
+            self._env.update(varg)
+
+        for k, v in kwargs.items():
+            self._env[k] = v
+
+    def remove_env(self, *vargs):
+
+        for varg in vargs:
+            del self._env[varg]
+
+
 class MatPlot(pyloco.Task):
     """matplotlib-based plotting task
 
@@ -92,6 +111,30 @@ Examples
             opt.kwargs[k] = eval(v, self._env) 
 
     def perform(self, targs):
+
+        if targs.plot:
+            opts = targs.plot
+            plotter = Plotter(self._env)
+            targs.plot = []
+
+            for opt in opts:
+                if not opt:
+                    continue
+
+                fname = opt.context[0] if opt.context else "plot"
+
+                if "." in fname:
+                    plotfunc = eval(fname, self._env)
+                    plotfunc(plotter, opt, targs)
+
+                elif hasattr(self, fname):
+                    getattr(self, fname)(plotter, opt, targs)
+
+                elif fname in self._env:
+                    self._env[fname](plotter, opt, targs)
+
+                else:
+                    targs.plot.append(opt)
 
         if targs.calc:
             for calc_arg in targs.calc:
