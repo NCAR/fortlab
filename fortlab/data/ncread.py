@@ -2,7 +2,19 @@
 
 import netCDF4
 import pyloco
-from nctools_util import normpath
+
+def normpath(path, type=None):
+
+    split = [p.strip() for p in path.split("/") if p.strip()]
+
+    if type in ("variable", "attribute"):
+        newpath = "/".join(split)
+    elif type in ("group",): 
+        newpath = "/".join(split) + "/"
+    else:
+        newpath = "/".join([p.strip() for p in path.strip().split("/")])
+
+    return "/" + newpath 
 
 class NCRead(pyloco.Task):
     """Read a netcdf data file and convert data to a Python dictionary

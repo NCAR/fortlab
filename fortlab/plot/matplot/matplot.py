@@ -102,6 +102,19 @@ Examples
         self.axes3d = None
         self.plots = []
 
+    def pre_perform(self, targs):
+
+        if targs.multiproc:
+            vargs = targs.multiproc.vargs
+
+            if len(vargs) == 1:
+                vargs.append("spawn")
+
+            elif len(vargs) > 1:
+                vargs[1] = "spawn"
+
+        super(MatPlot, self).pre_perform(targs)
+
     def _eval(self, opt):
 
         for i in range(len(opt.vargs)):

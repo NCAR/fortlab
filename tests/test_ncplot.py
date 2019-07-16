@@ -59,7 +59,7 @@ class TaskNcPlotTests(unittest.TestCase):
 
 
         argv = self.ncplot_argv + [
-            "-p", "lon,lat,pr@plot_contour", "--noshow"
+                "-p", "lon[:],lat[:],pr[0,:,:]@plot_contour", "--noshow"
         ]
 
         forward = {
@@ -84,7 +84,8 @@ class TaskNcPlotTests(unittest.TestCase):
 
 
         argv = self.ncplot_argv + [
-            "-p", "lat,lon,pr@plot_contour", "--noshow"
+                "--import", "numpy",
+                "-p", "lat[:],lon[:],numpy.swapaxes(pr[0,:,:], 0, 1)@contour", "--noshow"
         ]
 
         forward = {
@@ -92,14 +93,13 @@ class TaskNcPlotTests(unittest.TestCase):
         }
 
         retval, forward = pyloco.perform(ncplot, argv, forward=forward)
-
         self._default_assert(retval)
 
     def test_multiproc(self):
 
         argv = ["--multiproc", "3", "--clone", "[1,1,1]"]
         subargv = [ncread, datafile, "-v", "ua", "--import", nctoolsutil, "--",
-                   ncplot, "-p", "lon,lat,ua@plot_contourf", "--noshow", "-s",
+                ncplot, "-p", "lon[:],lat[:],ua[0,0,:,:]@plot_contourf", "--noshow", "-s",
                    "'cont%d.png'%_pathid_", "-t", "ua.original_name + ua.units"]
 
         retval, forward = pyloco.perform("", argv, subargv)
@@ -126,7 +126,7 @@ class TaskNcPlotTests(unittest.TestCase):
 
 
         argv = self.ncplot_argv + [
-            "-p", "pr@plot_contour", "--noshow"
+                "-p", "pr[0,:,:]@plot_contour", "--noshow"
         ]
 
         forward = {
