@@ -7,6 +7,8 @@ def main():
     here = os.path.abspath(os.path.dirname(__file__))
     mgr = collect_mgrattrs(os.path.join(here, "fortlab", "main.py"), "FortLab")
 
+    # TODO: pyloco test loader is needed
+
     setup(
         name=mgr.get("_name_"),
         version=mgr.get("_version_"),
@@ -16,7 +18,7 @@ def main():
         author_email=mgr.get("_author_email_", None),
         license=mgr.get("_license_", None),
         packages=find_packages(),
-        install_requires=["pyloco"],
+        install_requires=["langlab"],
         url=mgr.get("_url_", None),
         entry_points={
             'console_scripts': [

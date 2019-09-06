@@ -56,7 +56,8 @@ lint: ## check style with flake8
 	flake8 ${NAME} tests
 
 test: ## run tests quickly with the default Python
-	python setup.py test
+	#python setup.py test
+	fortlab test tests/test_parse.py
 
 test-all: ## run tests on every Python version with tox
 	tox
@@ -100,18 +101,3 @@ install: clean ## install the package to the active Python's site-packages
 dev-install: clean ## install the package locally
 	python setup.py develop
 	#python setup.py develop --user --user is not work with virtualenv
-
-####### NOTES #######
-
-# >>> pip install Sphinx
-# >>> pip install sphinx_rtd_theme
-#
-ncl:
-	pyloco fortlab/data/ncread.py tests/data/sresa1b_ncar_ccsm3-example.nc --import fortlab/core/nctools_util.py -l
-
-ncv:
-	pyloco fortlab/data/ncread.py tests/data/sresa1b_ncar_ccsm3-example.nc --import fortlab/core/nctools_util.py -i ua
-
-plot:
-	pyloco fortlab/data/ncread.py tests/data/sresa1b_ncar_ccsm3-example.nc --import fortlab/core/nctools_util.py -v ua -- fortlab/plot/ncplot.py -p 'lon,lat,ua@contourf' -s cont1.png -t 'ua.long_name'
-	xdg-open cont1.png

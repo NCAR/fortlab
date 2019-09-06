@@ -1,16 +1,15 @@
 import unittest
+from pyloco.test import TestSuite
 
-from .test_netcdf import test_classes as task_netcdfs
-from .test_matplot import test_classes as task_matplots
-from .test_ncplot import test_classes as task_ncplots
+from .test_parse import test_classes as parse_tests
 
 
 def fortlab_unittest_suite():
 
     loader = unittest.TestLoader()
-    suite = unittest.TestSuite()
+    suite = TestSuite()
 
-    all_tests = task_ncplots + task_netcdfs + task_matplots
+    all_tests = parse_tests
 
     for test_class in all_tests:
         tests = loader.loadTestsFromTestCase(test_class)

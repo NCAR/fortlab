@@ -10,4 +10,5 @@ class FortLab(pyloco.Manager):
     _author_email_ ='youngsun@ucar.edu'
     _license_ ='MIT'
     _url_='https://github.com/NCAR/fortlab'
-    pyloco.Manager.load_default_task("fortparse.py", "fortdeps.py")
+    pyloco.Manager.load_default_task("direct.py", "name.py", "output.py",
+                                     "parse.py", "resolve.py")
