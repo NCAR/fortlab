@@ -51,30 +51,35 @@ class TaskFortParseTests(pyloco.TestCase):
 
         with langlab.workdir(self.tempdir) as cwd:
 
-            argv = [ "--cwd", self.tempdir]
-            argv.append("%s -o %s %s" % (self.gfortran, self.outpath, self.srcpath))
+            argv = [
+                self.srcpath,
+                "--fpp",
+                "-I", self.tempdir,
+                "-D", "X=1",
+            ]
+            #argv.append("%s -o %s %s" % (self.gfortran, self.outpath, self.srcpath))
 
-            ret, fwd = langlab.perform("buildapp", argv=argv)
+            ret, fwd = langlab.perform("parse", argv=argv)
             self.assertEqual(ret, 0)
             self.assertEqual(fwd["stdout"], "")
             self.assertEqual(fwd["stderr"], "")
-
-            argv = [ "--cwd", self.tempdir]
-            argv.append(self.outpath)
-
-            ret, fwd = langlab.perform("runapp", argv=argv)
-            self.assertEqual(ret, 0)
-            self.assertEqual(fwd["stdout"].strip(), greeting)
-            self.assertEqual(fwd["stderr"], "")
-
-            argv = [ "--cwd", self.tempdir]
-            argv.append("rm -rf %s" % self.outpath)
-
-            ret, fwd = langlab.perform("cleanapp", argv=argv)
-            self.assertEqual(ret, 0)
-            self.assertEqual(fwd["stdout"], "")
-            self.assertEqual(fwd["stderr"], "")
-
-            self.assertTrue(not os.path.isfile(self.outpath))
+#
+#            argv = [ "--cwd", self.tempdir]
+#            argv.append(self.outpath)
+#
+#            ret, fwd = langlab.perform("runapp", argv=argv)
+#            self.assertEqual(ret, 0)
+#            self.assertEqual(fwd["stdout"].strip(), greeting)
+#            self.assertEqual(fwd["stderr"], "")
+#
+#            argv = [ "--cwd", self.tempdir]
+#            argv.append("rm -rf %s" % self.outpath)
+#
+#            ret, fwd = langlab.perform("cleanapp", argv=argv)
+#            self.assertEqual(ret, 0)
+#            self.assertEqual(fwd["stdout"], "")
+#            self.assertEqual(fwd["stderr"], "")
+#
+#            self.assertTrue(not os.path.isfile(self.outpath))
 
 test_classes = (TaskFortParseTests,)
