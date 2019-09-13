@@ -5,10 +5,11 @@ import os
 import fparser.common.readfortran
 import fparser.two.parser
 #import fparser.two.Fortran2003
-#import fparser.two.utils
+import fparser.two.utils
 
 from pyloco import Task
 from pcpp.cmd import CmdPreprocessor
+from langlab import toast, Tree, Proxy
 
 class Parse(Task):
     "parse Fortran source code"
@@ -23,7 +24,7 @@ class Parse(Task):
                 help="Path to search for unfound #include's")
         self.add_option_argument("--fpp", action="store_true", help="run preprocessor")
 
-        self.register_forward("ast", type=str, help="output abstract syntax tree")
+        self.register_forward("ast", type=Tree, help="output abstract syntax tree")
 
         self.parse_known_args = True
 
@@ -51,5 +52,39 @@ class Parse(Task):
         reader = fparser.common.readfortran.FortranFileReader(prepfile, ignore_comments=False)
         reader.id = targs.path
         tree = fparser.two.parser.ParserFactory().create(std="f2008")(reader)
+        ast = toast(tree, FortProxy())
 
-        self.add_forward(ast=tree)
+        self.add_forward(ast=ast)
+
+
+class FortProxy(Proxy):
+
+
+    def get_rootnode(self, tree):
+        return tree
+
+    def get_nodename(self, node):
+        return node.__class__.__name__
+
+    def get_nodeid(self, node):
+        return id(node)
+
+    def get_subnodes(self, node):
+
+        if hasattr(node, "content"):
+            return node.content
+
+        elif hasattr(node, "items"):
+            return [i for i in node.items if isinstance(i, fparser.two.utils.Base)]
+
+        else:
+            return []
+
+    def get_source(self, node):
+
+        return node.tofortran()
+
+    def is_equivalent(self, n1, n2):
+
+        return n1 == n2
+

@@ -17,6 +17,7 @@ greeting = "Hello, World!"
 helloworld_f = """! helloworld.c test program
        program hello
           print *, "%s"
+          print *, " X = ", X
        end program hello
 """ % greeting
 
@@ -30,24 +31,12 @@ class TaskFortParseTests(pyloco.TestCase):
 
         super(TaskFortParseTests, self).__init__(*vargs, **kwargs)
 
-        self.gfortran = langlab.which("gfortran")
-
-    def setUp(self):
-
-        assert self.gfortran is not None
         self.tempdir = tempfile.mkdtemp()
         self.srcpath = os.path.join(self.tempdir, srcfile)
         self.outpath = os.path.join(self.tempdir, outfile)
 
         with open(self.srcpath, "w") as fsrc:
             fsrc.write(helloworld_f)
-
-
-    def tearDown(self):
-
-        shutil.rmtree(self.tempdir)
-
-    def test_shell_compile(self):
 
         with langlab.workdir(self.tempdir) as cwd:
 
@@ -57,29 +46,43 @@ class TaskFortParseTests(pyloco.TestCase):
                 "-I", self.tempdir,
                 "-D", "X=1",
             ]
-            #argv.append("%s -o %s %s" % (self.gfortran, self.outpath, self.srcpath))
 
-            ret, fwd = langlab.perform("parse", argv=argv)
+            ret, fwd = fortlab.perform("parse", argv=argv)
+
             self.assertEqual(ret, 0)
-            self.assertEqual(fwd["stdout"], "")
-            self.assertEqual(fwd["stderr"], "")
-#
-#            argv = [ "--cwd", self.tempdir]
-#            argv.append(self.outpath)
-#
-#            ret, fwd = langlab.perform("runapp", argv=argv)
-#            self.assertEqual(ret, 0)
-#            self.assertEqual(fwd["stdout"].strip(), greeting)
-#            self.assertEqual(fwd["stderr"], "")
-#
-#            argv = [ "--cwd", self.tempdir]
-#            argv.append("rm -rf %s" % self.outpath)
-#
-#            ret, fwd = langlab.perform("cleanapp", argv=argv)
-#            self.assertEqual(ret, 0)
-#            self.assertEqual(fwd["stdout"], "")
-#            self.assertEqual(fwd["stderr"], "")
-#
-#            self.assertTrue(not os.path.isfile(self.outpath))
+            self.assertIsInstance(fwd["ast"], langlab.Tree)
+
+            self.ast = fwd["ast"]
+
+    def setUp(self):
+
+        pass
+
+    def tearDown(self):
+
+        pass
+
+    def test_build_ast(self):
+
+        #self.ast.show()
+        root, ext = os.path.splitext(self.srcpath)
+        path = root + ".ast" + ext 
+
+        with open(path, "w") as f:
+            f.write(self.ast.tosource())
+
+        ret, fwd = fortlab.perform("parse", forward={"path": path})
+
+        os.remove(path)
+
+        self.assertEqual(ret, 0)
+        self.assertIsInstance(fwd["ast"], langlab.Tree)
+
+        ast = fwd["ast"]
+        self.assertEqual(self.ast, ast)
+
+    def __del__(self):
+
+        shutil.rmtree(self.tempdir)
 
 test_classes = (TaskFortParseTests,)
