@@ -101,3 +101,6 @@ install: clean ## install the package to the active Python's site-packages
 dev-install: clean ## install the package locally
 	python setup.py develop
 	#python setup.py develop --user --user is not work with virtualenv
+
+trace:
+	gfortran f.f90 -o f.exe
