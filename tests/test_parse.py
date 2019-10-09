@@ -16,8 +16,14 @@ greeting = "Hello, World!"
 
 helloworld_f = """! helloworld.c test program
        program hello
+          integer Y, Z
+
+          Y = 1
+          Z = X
           print *, "%s"
           print *, " X = ", X
+          print *, " Y = ", Y
+          print *, " Z = ", Z
        end program hello
 """ % greeting
 
@@ -54,6 +60,9 @@ class TaskFortParseTests(pyloco.TestCase):
 
             self.ast = fwd["ast"]
 
+        self.command = ("%s -o %s %s -D X=1" %
+                        ("gfortran", self.outpath, self.srcpath))
+
     def setUp(self):
 
         pass
@@ -62,7 +71,7 @@ class TaskFortParseTests(pyloco.TestCase):
 
         pass
 
-    def test_build_ast(self):
+    def ttest_build_ast(self):
 
         #self.ast.show()
         root, ext = os.path.splitext(self.srcpath)
@@ -80,6 +89,36 @@ class TaskFortParseTests(pyloco.TestCase):
 
         ast = fwd["ast"]
         self.assertEqual(self.ast, ast)
+
+    def ttest_trace(self):
+
+        tracefile = os.path.join(self.tempdir, "trace.log")
+
+        argv = [
+            self.command,
+            tracefile,
+        ]
+
+        ret, fwd = fortlab.perform("compiler", argv=argv)
+        self.assertEqual(ret, 0)
+        self.assertIn(self.srcpath, fwd["data"].sections())
+
+    def test_identifier(self):
+
+        argv = [
+            "--debug"
+        ]
+
+        forward = {
+            "tree": self.ast,
+            "node": self.ast[self.ast.root],
+        }
+
+        ret, fwd = fortlab.perform("identifier", argv=argv, forward=forward)
+        self.assertEqual(ret, 0)
+        self.assertIn("ids", fwd)
+        for name in fwd["ids"]:
+            self.assertIn(name.data["name"], ("Y", "Z"))
 
     def __del__(self):
 

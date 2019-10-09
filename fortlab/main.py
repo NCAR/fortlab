@@ -11,4 +11,4 @@ class FortLab(pyloco.Manager):
     _license_ ='MIT'
     _url_='https://github.com/NCAR/fortlab'
     pyloco.Manager.load_default_task("direct.py", "name.py", "output.py",
-                                     "parse.py", "resolve.py")
+                                     "parse.py", "resolve.py", "compiler.py")
