@@ -103,7 +103,7 @@ class TaskFortParseTests(pyloco.TestCase):
         self.assertEqual(ret, 0)
         self.assertIn(self.srcpath, fwd["data"].sections())
 
-    def test_identifier(self):
+    def ttest_referer(self):
 
         argv = [
             "--debug"
@@ -114,7 +114,24 @@ class TaskFortParseTests(pyloco.TestCase):
             "node": self.ast[self.ast.root],
         }
 
-        ret, fwd = fortlab.perform("identifier", argv=argv, forward=forward)
+        ret, fwd = fortlab.perform("referer", argv=argv, forward=forward)
+        self.assertEqual(ret, 0)
+        self.assertIn("ids", fwd)
+        for name in fwd["ids"]:
+            self.assertIn(name.data["name"], ("Y", "Z"))
+
+    def test_resolve(self):
+
+        argv = [
+            "--debug"
+        ]
+
+        forward = {
+            "tree": self.ast,
+            "node": self.ast[self.ast.root],
+        }
+
+        ret, fwd = fortlab.perform("referer", argv=argv, forward=forward)
         self.assertEqual(ret, 0)
         self.assertIn("ids", fwd)
         for name in fwd["ids"]:

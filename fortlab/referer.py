@@ -115,9 +115,9 @@ res_all_stmts = {
     "Stmt_Function_Stmt": (None, None)
 }
 
-class Identifier(pyloco.Task):
+class Referer(pyloco.Task):
 
-    _name_ = "identifier"
+    _name_ = "referer"
     _version_ = "0.1.0"
 
     def __init__(self, parent):
