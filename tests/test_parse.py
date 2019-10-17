@@ -71,7 +71,7 @@ class TaskFortParseTests(pyloco.TestCase):
 
         pass
 
-    def ttest_build_ast(self):
+    def test_build_ast(self):
 
         #self.ast.show()
         root, ext = os.path.splitext(self.srcpath)
@@ -90,7 +90,7 @@ class TaskFortParseTests(pyloco.TestCase):
         ast = fwd["ast"]
         self.assertEqual(self.ast, ast)
 
-    def ttest_trace(self):
+    def test_trace(self):
 
         tracefile = os.path.join(self.tempdir, "trace.log")
 
@@ -103,7 +103,7 @@ class TaskFortParseTests(pyloco.TestCase):
         self.assertEqual(ret, 0)
         self.assertIn(self.srcpath, fwd["data"].sections())
 
-    def ttest_referer(self):
+    def test_referer(self):
 
         argv = [
             "--debug"

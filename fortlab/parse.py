@@ -74,7 +74,12 @@ def _Name_attr(node):
 def _default_attr(node):
 
     if hasattr(node, "tofortran"):
-        return {"string": node.tofortran()}
+        if isinstance(node, fparser.two.utils.BlockBase):
+            #import pdb; pdb.set_trace()
+            return {"string": ""}
+
+        else:
+            return {"string": node.tofortran()}
 
     else:
         return {"string": str(node)}
@@ -137,7 +142,9 @@ class FortProxy(Proxy):
 
     def get_source(self, node):
 
-        return node.tofortran()
+        #import pdb; pdb.set_trace()
+        return node["string"]
+        #return node.tofortran()
 
     def is_equivalent(self, n1, n2):
 
